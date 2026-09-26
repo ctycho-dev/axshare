@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-
+	"github.com/ctycho-dev/axshare/internal/store"
 	"github.com/ctycho-dev/axshare/internal/server"
 )
 
@@ -31,7 +31,8 @@ func main() {
 }
 
 func run(addr, dbPath string) error {
-	srv := server.New(addr)
+	st := store.NewMemory()
+	srv := server.New(addr, st)
 
 	log.Printf("axshare listening on %s (db: %s)", addr, dbPath)
 	return srv.ListenAndServe()

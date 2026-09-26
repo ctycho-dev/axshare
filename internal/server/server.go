@@ -1,35 +1,24 @@
-// Package server wires HTTP routes to handlers. It knows nothing about
-// storage yet; that arrives in stage 3 through a store.Store interface.
 package server
 
 import (
 	"embed"
 	"encoding/json"
+	"github.com/ctycho-dev/axshare/internal/store"
 	"io/fs"
 	"log"
 	"net/http"
 	"time"
 )
 
-// The static/ directory is compiled into the binary at build time.
-// The path is relative to this file and resolved by the compiler,
-// so a typo here is a compile error, not a runtime surprise.
-//
-//go:embed static
 var staticFS embed.FS
 
-// Server holds the router and, later, the store and the hub.
-// Handlers are methods on it so they can reach those dependencies
-// without globals.
 type Server struct {
-	mux *http.ServeMux
+	mux   *http.ServeMux
+	store store.Store
 }
 
-// New builds the router and returns a ready-to-run http.Server.
-// Returning *http.Server (a concrete type) rather than an interface
-// is the "accept interfaces, return structs" guideline in practice.
-func New(addr string) *http.Server {
-	s := &Server{mux: http.NewServeMux()}
+func New(addr string, st store.Store) *http.Server {
+	s := &Server{mux: http.NewServeMux(), store: st}
 	s.routes()
 
 	return &http.Server{
@@ -41,7 +30,6 @@ func New(addr string) *http.Server {
 	}
 }
 
-// routes is the one place that lists every URL the server answers.
 func (s *Server) routes() {
 	// staticFS is rooted at the package directory, so files are at
 	// "static/index.html". fs.Sub re-roots it so "/" maps to "index.html".
@@ -57,6 +45,8 @@ func (s *Server) routes() {
 	// file server.
 	s.mux.Handle("GET /", http.FileServerFS(static))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
+	s.mux.HandleFunc("POST /api/pastes", s.handleCreatePaste)
+	s.mux.HandleFunc("GET /api/pastes/{id}", s.handleGetPaste)
 }
 
 type healthResponse struct {

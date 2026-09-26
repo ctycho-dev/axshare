@@ -1,10 +1,10 @@
 package store
 
 import (
+	"bytes"
+	"context"
 	"sync"
 	"time"
-	"context"
-	"bytes"
 )
 
 type Memory struct {
@@ -53,11 +53,11 @@ func (m *Memory) Expire(ctx context.Context, now time.Time) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var n int
-	for id, p := range m.pastes { 
+	for id, p := range m.pastes {
 		if p.ExpiresAt.Before(now) {
-			delete(m.pastes, id);
-			n++;
-		} 
+			delete(m.pastes, id)
+			n++
+		}
 	}
 	return n, nil
 }
