@@ -31,7 +31,12 @@ func main() {
 }
 
 func run(addr, dbPath string) error {
-	st := store.NewMemory()
+	st, err := store.OpenSQLite(dbPath)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
 	srv := server.New(addr, st)
 
 	log.Printf("axshare listening on %s (db: %s)", addr, dbPath)

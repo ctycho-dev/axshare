@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"path/filepath"
 )
 
 // testStore runs the same suite against any Store. Stage 4 will call it
@@ -147,5 +148,17 @@ func TestMemory(t *testing.T) {
 		m := NewMemory()
 		m.now = func() time.Time { return time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC) }
 		return m
+	})
+}
+
+func TestSQLite(t *testing.T) {
+	testStore(t, func(t *testing.T) Store {
+		s, err := OpenSQLite(filepath.Join(t.TempDir(), "test.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { s.Close() })
+		s.now = func() time.Time { return time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC) }
+		return s
 	})
 }
