@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>axshare</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      padding: .5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #8884;
+      font-size: .875rem;
+    }
+    textarea {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      resize: none;
+      padding: 1rem;
+      font: inherit;
+      background: transparent;
+      color: inherit;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>axshare</strong>
+    <span id="status">stage 1 — static page, no sync yet</span>
+  </header>
+  <textarea id="buf" placeholder="paste here…" spellcheck="false" autofocus></textarea>
+</body>
+</html>
