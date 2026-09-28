@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
-	"path/filepath"
 )
 
 // testStore runs the same suite against any Store. Stage 4 will call it

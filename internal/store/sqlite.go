@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
-	"errors"
 	// Blank import: we never call the package directly. Its init() registers
 	// the driver with database/sql under the name "sqlite", and that side
 	// effect is all we want. Without the underscore the compiler rejects an
