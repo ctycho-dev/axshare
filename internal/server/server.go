@@ -27,10 +27,11 @@ type Server struct {
 func New(addr string, st store.Store, h *hub.Hub) *http.Server {
 	s := &Server{mux: http.NewServeMux(), store: st, hub: h}
 	s.routes()
+	rl := newRateLimiter(5, 20)
 
 	return &http.Server{
 		Addr:    addr,
-		Handler: logRequests(s.mux),
+		Handler: logRequests(rl.middleware(s.mux)),
 		// Without this a client that opens a connection and never sends
 		// headers holds a goroutine forever.
 		ReadHeaderTimeout: 5 * time.Second,
