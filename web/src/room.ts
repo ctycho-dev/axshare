@@ -45,7 +45,10 @@ function applyLanguage(lang: string, persist: boolean) {
     try { localStorage.setItem(LANG_KEY, lang) } catch { /* ignore */ }
   }
 }
-langSel.addEventListener('change', () => applyLanguage(langSel.value, true))
+
+let savedLang: string | null = null
+try { savedLang = localStorage.getItem(LANG_KEY) } catch { /* ignore */ }
+if (savedLang) applyLanguage(savedLang, false)
 
 function send(text: string) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return
@@ -75,9 +78,7 @@ function connect() {
     if (first) {
       first = false
       editor.view.focus()
-      let saved: string | null = null
-      try { saved = localStorage.getItem(LANG_KEY) } catch { /* ignore */ }
-      applyLanguage(saved ?? guessLanguage(e.data), false)
+      if (!savedLang) applyLanguage(guessLanguage(e.data), false)
     }
     bump(e.data)
   }
