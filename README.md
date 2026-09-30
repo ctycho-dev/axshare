@@ -18,7 +18,6 @@
   <a href="#develop">Develop</a> ·
   <a href="#deploy">Deploy</a>
 </p>
----
 
 A self-hosted replacement for codefile.io. Open a room on one laptop, open the same URL on another, type on either; both stay in sync over a WebSocket within ~200 ms. Syntax highlighting for the usual suspects (TS, JS, Go, Python, Rust, Markdown, JSON, YAML), light and dark, keyboard-first.
 
