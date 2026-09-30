@@ -1,9 +1,9 @@
----
+
 <p align="center">
   <img src="web/public/favicon.svg" width="72" alt="axshare">
 </p>
 
-<h1 align="center">axshare</h1>
+<h1 align="center">Axshare</h1>
 
 <p align="center">
   Live text sync between machines. Create a file, share the link, edit it from anywhere.<br>
