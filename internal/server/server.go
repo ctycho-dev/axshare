@@ -19,9 +19,10 @@ import (
 var staticFS embed.FS
 
 type Server struct {
-	mux   *http.ServeMux
-	store store.Store
-	hub   *hub.Hub
+	mux    *http.ServeMux
+	store  store.Store
+	hub    *hub.Hub
+	static fs.FS
 }
 
 func New(addr string, st store.Store, h *hub.Hub) *http.Server {
@@ -46,18 +47,22 @@ func logRequests(next http.Handler) http.Handler {
 }
 
 func (s *Server) routes() {
-	// staticFS is the package-level variable above. Do not redeclare it
-	// here: a local with the same name would hide it and be empty.
 	static, err := fs.Sub(staticFS, "dist")
 	if err != nil {
 		panic(err)
 	}
+	s.static = static
 
 	s.mux.Handle("GET /", http.FileServerFS(static))
+	s.mux.HandleFunc("GET /room/{id}", s.handleRoomPage)
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("POST /api/rooms", s.handleCreateRoom)
 	s.mux.HandleFunc("GET /api/rooms/{id}", s.handleGetRoom)
 	s.mux.HandleFunc("GET /ws/{id}", s.handleWS)
+}
+
+func (s *Server) handleRoomPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFileFS(w, r, s.static, "room.html")
 }
 
 type healthResponse struct {

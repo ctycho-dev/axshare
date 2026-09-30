@@ -15,7 +15,7 @@ const copyBtn = $<HTMLButtonElement>('#copy')
 const langSel = $<HTMLSelectElement>('#lang')
 
 $<HTMLElement>('#room-id').textContent = id.slice(0, 8)
-document.title = `${id.slice(0, 8)} — axshare`
+document.title = `Axshare Room | ${id.slice(0, 8)}`
 
 let ws: WebSocket | null = null
 let expiresAt = Date.now() + TTL_MS
