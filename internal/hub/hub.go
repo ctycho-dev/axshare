@@ -133,7 +133,7 @@ func (h *Hub) Join(ctx context.Context, id string, conn *websocket.Conn, initial
 func (r *room) persist(data []byte) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = r.store.Put(ctx, store.Paste{
+	_ = r.store.Put(ctx, store.Room{
 		ID:        r.id,
 		Content:   data,
 		CreatedAt: time.Now(),

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>axshare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="editor-page">
+  <header class="bar">
+    <a class="wordmark" href="/">axshare</a>
+    <span class="room-id" id="room-id"></span>
+    <select class="lang" id="lang" title="syntax highlighting"></select>
+    <span class="spacer"></span>
+    <span class="status" id="status" data-state="connecting">connecting</span>
+    <button class="copy" id="copy">copy link</button>
+  </header>
+
+  <div id="editor"></div>
+
+  <section class="gone" id="gone" hidden>
+    <span>this file has expired or never existed</span>
+    <a href="/"><button>create a new one</button></a>
+  </section>
+
+  <footer class="foot">
+    <span id="expires"></span>
+    <span class="spacer"></span>
+    <span class="bytes" id="bytes">0 B</span>
+  </footer>
+
+  <script type="module" src="/src/room.ts"></script>
+</body>
+</html>

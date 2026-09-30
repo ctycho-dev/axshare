@@ -15,7 +15,7 @@ import (
 // The next line is a compiler directive, not a comment. It must sit
 // directly above the var, with no blank line between them.
 //
-//go:embed static
+//go:embed all:dist
 var staticFS embed.FS
 
 type Server struct {
@@ -48,15 +48,15 @@ func logRequests(next http.Handler) http.Handler {
 func (s *Server) routes() {
 	// staticFS is the package-level variable above. Do not redeclare it
 	// here: a local with the same name would hide it and be empty.
-	static, err := fs.Sub(staticFS, "static")
+	static, err := fs.Sub(staticFS, "dist")
 	if err != nil {
 		panic(err)
 	}
 
 	s.mux.Handle("GET /", http.FileServerFS(static))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
-	s.mux.HandleFunc("POST /api/pastes", s.handleCreatePaste)
-	s.mux.HandleFunc("GET /api/pastes/{id}", s.handleGetPaste)
+	s.mux.HandleFunc("POST /api/rooms", s.handleCreateRoom)
+	s.mux.HandleFunc("GET /api/rooms/{id}", s.handleGetRoom)
 	s.mux.HandleFunc("GET /ws/{id}", s.handleWS)
 }
 

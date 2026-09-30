@@ -1,0 +1,15 @@
+services:
+  axshare:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8070:8070"
+    volumes:
+      - axshare-data:/data
+    healthcheck:
+      # distroless has no curl; the healthz endpoint is checked from the
+      # host or by Caddy instead. Left here so the intent is visible.
+      disable: true
+
+volumes:
+  axshare-data:

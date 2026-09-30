@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-var ErrNotFound = errors.New("store: paste not found")
+var ErrNotFound = errors.New("store: room not found")
 
-type Paste struct {
+type Room struct {
 	ID        string
 	Content   []byte
 	CreatedAt time.Time
@@ -16,9 +16,9 @@ type Paste struct {
 }
 
 type Store interface {
-	Put(ctx context.Context, p Paste) error
+	Put(ctx context.Context, p Room) error
 
-	Get(ctx context.Context, id string) (Paste, error)
+	Get(ctx context.Context, id string) (Room, error)
 
 	Delete(ctx context.Context, id string) error
 

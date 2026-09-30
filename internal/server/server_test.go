@@ -38,10 +38,10 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-func TestCreateAndGetPaste(t *testing.T) {
+func TestCreateAndGetRoom(t *testing.T) {
 	h := newTestServer(t)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/pastes", strings.NewReader("hello"))
+	req := httptest.NewRequest(http.MethodPost, "/api/rooms", strings.NewReader("hello"))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -59,7 +59,7 @@ func TestCreateAndGetPaste(t *testing.T) {
 		t.Fatal("POST returned empty id")
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/api/pastes/"+resp.ID, nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/rooms/"+resp.ID, nil)
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -70,7 +70,7 @@ func TestCreateAndGetPaste(t *testing.T) {
 	}
 
 	// 4. Unknown id.
-	req = httptest.NewRequest(http.MethodGet, "/api/pastes/nope", nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/rooms/nope", nil)
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>axshare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <main class="landing">
+    <span class="wordmark">axshare</span>
+    <p class="tagline">Live text sync. Create a file, share the link, edit it from anywhere. Self-hosted, no accounts, gone in 24 hours.</p>
+
+    <button class="create" id="create">create file <kbd>⏎</kbd></button>
+    <p class="hint">or press n</p>
+
+    <section class="recent" id="recent" hidden>
+      <header>
+        <span>recent on this machine</span>
+        <button id="clear">clear</button>
+      </header>
+      <div id="recent-rows"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span id="server-info">axshare</span>
+    <nav>
+      <a href="https://github.com/ctycho-dev/axshare" target="_blank" rel="noopener">source</a>
+    </nav>
+  </footer>
+
+  <script type="module" src="/src/index.ts"></script>
+</body>
+</html>

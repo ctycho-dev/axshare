@@ -29,7 +29,7 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 		{
 			name: "put then get",
 			run: func(t *testing.T, s Store) {
-				want := Paste{ID: "a", Content: []byte("hello"), CreatedAt: now, ExpiresAt: future}
+				want := Room{ID: "a", Content: []byte("hello"), CreatedAt: now, ExpiresAt: future}
 				if err := s.Put(ctx, want); err != nil {
 					t.Fatalf("Put: %v", err)
 				}
@@ -54,7 +54,7 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 		{
 			name: "put replaces existing",
 			run: func(t *testing.T, s Store) {
-				p := Paste{ID: "a", Content: []byte("v1"), CreatedAt: now, ExpiresAt: future}
+				p := Room{ID: "a", Content: []byte("v1"), CreatedAt: now, ExpiresAt: future}
 				_ = s.Put(ctx, p)
 				p.Content = []byte("v2")
 				if err := s.Put(ctx, p); err != nil {
@@ -73,7 +73,7 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 				// slice and Get hands the same one back, mutating the
 				// returned slice corrupts the store.
 				buf := []byte("original")
-				_ = s.Put(ctx, Paste{ID: "a", Content: buf, ExpiresAt: future})
+				_ = s.Put(ctx, Room{ID: "a", Content: buf, ExpiresAt: future})
 				buf[0] = 'X'
 				got, _ := s.Get(ctx, "a")
 				if string(got.Content) != "original" {
@@ -87,9 +87,9 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 			},
 		},
 		{
-			name: "expired paste is not found",
+			name: "expired room is not found",
 			run: func(t *testing.T, s Store) {
-				_ = s.Put(ctx, Paste{ID: "old", Content: []byte("x"), ExpiresAt: past})
+				_ = s.Put(ctx, Room{ID: "old", Content: []byte("x"), ExpiresAt: past})
 				_, err := s.Get(ctx, "old")
 				if !errors.Is(err, ErrNotFound) {
 					t.Errorf("Get expired: err = %v, want ErrNotFound", err)
@@ -99,7 +99,7 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 		{
 			name: "delete then get",
 			run: func(t *testing.T, s Store) {
-				_ = s.Put(ctx, Paste{ID: "a", Content: []byte("x"), ExpiresAt: future})
+				_ = s.Put(ctx, Room{ID: "a", Content: []byte("x"), ExpiresAt: future})
 				if err := s.Delete(ctx, "a"); err != nil {
 					t.Fatalf("Delete: %v", err)
 				}
@@ -119,9 +119,9 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 		{
 			name: "expire removes only expired",
 			run: func(t *testing.T, s Store) {
-				_ = s.Put(ctx, Paste{ID: "old1", Content: []byte("x"), ExpiresAt: past})
-				_ = s.Put(ctx, Paste{ID: "old2", Content: []byte("x"), ExpiresAt: past})
-				_ = s.Put(ctx, Paste{ID: "new", Content: []byte("x"), ExpiresAt: future})
+				_ = s.Put(ctx, Room{ID: "old1", Content: []byte("x"), ExpiresAt: past})
+				_ = s.Put(ctx, Room{ID: "old2", Content: []byte("x"), ExpiresAt: past})
+				_ = s.Put(ctx, Room{ID: "new", Content: []byte("x"), ExpiresAt: future})
 				n, err := s.Expire(ctx, now)
 				if err != nil {
 					t.Fatalf("Expire: %v", err)

@@ -20,13 +20,13 @@ import (
 // Times are stored as Unix seconds (INTEGER) rather than TEXT: cheaper to
 // compare in SQL and no timezone ambiguity.
 const schema = `
-CREATE TABLE IF NOT EXISTS pastes (
+CREATE TABLE IF NOT EXISTS rooms (
 	id         TEXT    PRIMARY KEY,
 	content    BLOB    NOT NULL,
 	created_at INTEGER NOT NULL,
 	expires_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS pastes_expires_at ON pastes (expires_at);
+CREATE INDEX IF NOT EXISTS rooms_expires_at ON rooms (expires_at);
 `
 
 // SQLite is a Store backed by a single file. *sql.DB is a connection pool,
@@ -71,9 +71,9 @@ func (s *SQLite) Close() error {
 // Put is an upsert: insert, or on a duplicate id replace the row.
 // The ? placeholders are the only correct way to pass values; never
 // fmt.Sprintf them into the SQL string.
-func (s *SQLite) Put(ctx context.Context, p Paste) error {
+func (s *SQLite) Put(ctx context.Context, p Room) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO pastes (id, content, created_at, expires_at)
+		INSERT INTO rooms (id, content, created_at, expires_at)
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			content    = excluded.content,
@@ -87,29 +87,29 @@ func (s *SQLite) Put(ctx context.Context, p Paste) error {
 	return nil
 }
 
-func (s *SQLite) Get(ctx context.Context, id string) (Paste, error) {
-	var p Paste
+func (s *SQLite) Get(ctx context.Context, id string) (Room, error) {
+	var p Room
 	var created, expires int64
 
-	row := s.db.QueryRowContext(ctx, `SELECT id, content, created_at, expires_at FROM pastes WHERE id = ?`, id)
+	row := s.db.QueryRowContext(ctx, `SELECT id, content, created_at, expires_at FROM rooms WHERE id = ?`, id)
 	err := row.Scan(&p.ID, &p.Content, &created, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
-		return Paste{}, ErrNotFound
+		return Room{}, ErrNotFound
 	}
 	if err != nil {
-		return Paste{}, fmt.Errorf("get %s: %w", id, err)
+		return Room{}, fmt.Errorf("get %s: %w", id, err)
 	}
 
 	p.CreatedAt = time.Unix(created, 0)
 	p.ExpiresAt = time.Unix(expires, 0)
 	if p.ExpiresAt.Before(s.now()) {
-		return Paste{}, ErrNotFound
+		return Room{}, ErrNotFound
 	}
 	return p, nil
 }
 
 func (s *SQLite) Delete(ctx context.Context, id string) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM pastes WHERE id = ?`, id)
+	res, err := s.db.ExecContext(ctx, `DELETE FROM rooms WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete %s: %w", id, err)
 	}
@@ -124,7 +124,7 @@ func (s *SQLite) Delete(ctx context.Context, id string) error {
 }
 
 func (s *SQLite) Expire(ctx context.Context, now time.Time) (int, error) {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM pastes WHERE expires_at < ?`, now.Unix())
+	res, err := s.db.ExecContext(ctx, `DELETE FROM rooms WHERE expires_at < ?`, now.Unix())
 	if err != nil {
 		return 0, fmt.Errorf("expire: %w", err)
 	}
