@@ -36,19 +36,32 @@ const editor = createEditor(editorEl, (text) => {
 let sendTimer = 0
 
 // --- language ---
-const LANG_KEY = `axshare.lang.${id}`
+// The room's file type lives on the server. Picking one in the header saves
+// it for every viewer; they see it on their next load.
 for (const l of LANGUAGES) langSel.add(new Option(l.label, l.id))
-function applyLanguage(lang: string, persist: boolean) {
-  langSel.value = lang
-  editor.setLanguage(lang)
-  if (persist) {
-    try { localStorage.setItem(LANG_KEY, lang) } catch { /* ignore */ }
-  }
+let langChosen = false
+
+function applyLanguage(lang: string) {
+  // A file type this build doesn't know shows as plain.
+  const known = LANGUAGES.some((l) => l.id === lang) ? lang : 'plain'
+  langSel.value = known
+  editor.setLanguage(known)
 }
 
-let savedLang: string | null = null
-try { savedLang = localStorage.getItem(LANG_KEY) } catch { /* ignore */ }
-if (savedLang) applyLanguage(savedLang, false)
+langSel.addEventListener('change', async () => {
+  const lang = langSel.value
+  langChosen = true
+  applyLanguage(lang)
+  try {
+    await fetch(`/api/rooms/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ext: lang }),
+    })
+  } catch {
+    /* offline: the choice still applies on this page */
+  }
+})
 
 function send(text: string) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return
@@ -78,7 +91,7 @@ function connect() {
     if (first) {
       first = false
       editor.view.focus()
-      if (!savedLang) applyLanguage(guessLanguage(e.data), false)
+      if (!langChosen) applyLanguage(guessLanguage(e.data))
     }
     bump(e.data)
   }
@@ -125,8 +138,8 @@ setInterval(() => {
   expiresEl.textContent = fmtIn(expiresAt)
 }, 1000)
 
-// The room must exist before we open a socket; the GET also tells us
-// nothing is there (404) so the page can say so instead of spinning.
+// The room must exist before we open a socket. The same response carries
+// the room's file type and real expiry in headers.
 fetch(`/api/rooms/${id}`).then((r) => {
   if (r.status === 404) {
     showGone()
@@ -136,5 +149,14 @@ fetch(`/api/rooms/${id}`).then((r) => {
     setStatus('offline', `error ${r.status}`)
     return
   }
+
+  const ext = r.headers.get('X-Room-Ext') ?? 'plain'
+  if (ext !== 'plain') {
+    langChosen = true
+    applyLanguage(ext)
+  }
+  const expires = Number(r.headers.get('X-Room-Expires'))
+  if (expires > 0) expiresAt = expires * 1000
+
   connect()
 })

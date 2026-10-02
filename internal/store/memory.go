@@ -21,8 +21,27 @@ func (m *Memory) Put(ctx context.Context, p Room) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Ext is set on create only; an existing room keeps the one it has.
+	if old, ok := m.rooms[p.ID]; ok {
+		p.Ext = old.Ext
+	} else if p.Ext == "" {
+		p.Ext = DefaultExt
+	}
 	p.Content = bytes.Clone(p.Content) // own a copy; the caller may mutate theirs
 	m.rooms[p.ID] = p
+	return nil
+}
+
+func (m *Memory) SetExt(ctx context.Context, id, ext string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	p, ok := m.rooms[id]
+	if !ok || p.ExpiresAt.Before(m.now()) {
+		return ErrNotFound
+	}
+	p.Ext = ext
+	m.rooms[id] = p
 	return nil
 }
 

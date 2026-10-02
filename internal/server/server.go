@@ -57,6 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /room/{id}", s.handleRoomPage)
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("POST /api/rooms", s.handleCreateRoom)
+	s.mux.HandleFunc("PATCH /api/rooms/{id}", s.handleSetExt)
 	s.mux.HandleFunc("GET /api/rooms/{id}", s.handleGetRoom)
 	s.mux.HandleFunc("GET /ws/{id}", s.handleWS)
 }

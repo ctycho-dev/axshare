@@ -6,28 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	// Blank import: we never call the package directly. Its init() registers
-	// the driver with database/sql under the name "sqlite", and that side
-	// effect is all we want. Without the underscore the compiler rejects an
-	// unused import.
+
 	_ "modernc.org/sqlite"
 )
-
-// schema runs on every Open. IF NOT EXISTS makes it idempotent, which is
-// enough until there's a second version of the table; then it becomes a
-// migration.
-//
-// Times are stored as Unix seconds (INTEGER) rather than TEXT: cheaper to
-// compare in SQL and no timezone ambiguity.
-const schema = `
-CREATE TABLE IF NOT EXISTS rooms (
-	id         TEXT    PRIMARY KEY,
-	content    BLOB    NOT NULL,
-	created_at INTEGER NOT NULL,
-	expires_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS rooms_expires_at ON rooms (expires_at);
-`
 
 // SQLite is a Store backed by a single file. *sql.DB is a connection pool,
 // not a connection, and is safe for concurrent use, so unlike Memory there
@@ -38,7 +19,7 @@ type SQLite struct {
 }
 
 // OpenSQLite opens (creating if needed) the database at path and applies
-// the schema. Use ":memory:" for a throwaway database in tests.
+// any pending migrations. Use ":memory:" for a throwaway database in tests.
 func OpenSQLite(path string) (*SQLite, error) {
 	// WAL lets readers proceed while a write is in progress; busy_timeout
 	// makes a second writer wait instead of failing immediately with
@@ -55,9 +36,9 @@ func OpenSQLite(path string) (*SQLite, error) {
 		db.Close()
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(context.Background(), db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("apply schema: %w", err)
+		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
 	return &SQLite{db: db, now: time.Now}, nil
@@ -68,18 +49,19 @@ func (s *SQLite) Close() error {
 	return s.db.Close()
 }
 
-// Put is an upsert: insert, or on a duplicate id replace the row.
-// The ? placeholders are the only correct way to pass values; never
-// fmt.Sprintf them into the SQL string.
 func (s *SQLite) Put(ctx context.Context, p Room) error {
+	ext := p.Ext
+	if ext == "" {
+		ext = DefaultExt
+	}
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO rooms (id, content, created_at, expires_at)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO rooms (id, content, ext, created_at, expires_at)
+		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			content    = excluded.content,
 			created_at = excluded.created_at,
 			expires_at = excluded.expires_at`,
-		p.ID, p.Content, p.CreatedAt.Unix(), p.ExpiresAt.Unix(),
+		p.ID, p.Content, ext, p.CreatedAt.Unix(), p.ExpiresAt.Unix(),
 	)
 	if err != nil {
 		return fmt.Errorf("put %s: %w", p.ID, err)
@@ -91,8 +73,8 @@ func (s *SQLite) Get(ctx context.Context, id string) (Room, error) {
 	var p Room
 	var created, expires int64
 
-	row := s.db.QueryRowContext(ctx, `SELECT id, content, created_at, expires_at FROM rooms WHERE id = ?`, id)
-	err := row.Scan(&p.ID, &p.Content, &created, &expires)
+	row := s.db.QueryRowContext(ctx, `SELECT id, content, ext, created_at, expires_at FROM rooms WHERE id = ?`, id)
+	err := row.Scan(&p.ID, &p.Content, &p.Ext, &created, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Room{}, ErrNotFound
 	}
@@ -106,6 +88,24 @@ func (s *SQLite) Get(ctx context.Context, id string) (Room, error) {
 		return Room{}, ErrNotFound
 	}
 	return p, nil
+}
+
+func (s *SQLite) SetExt(ctx context.Context, id, ext string) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE rooms SET ext = ? WHERE id = ? AND expires_at >= ?`,
+		ext, id, s.now().Unix(),
+	)
+	if err != nil {
+		return fmt.Errorf("set ext %s: %w", id, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set ext %s: rows affected: %w", id, err)
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *SQLite) Delete(ctx context.Context, id string) error {

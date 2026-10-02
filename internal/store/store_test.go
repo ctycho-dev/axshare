@@ -134,6 +134,87 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 				}
 			},
 		},
+		{
+			name: "new room defaults to plain",
+			run: func(t *testing.T, s Store) {
+				_ = s.Put(ctx, Room{ID: "a", Content: []byte("x"), ExpiresAt: future})
+				got, err := s.Get(ctx, "a")
+				if err != nil {
+					t.Fatalf("Get: %v", err)
+				}
+				if got.Ext != DefaultExt {
+					t.Errorf("Ext = %q, want %q", got.Ext, DefaultExt)
+				}
+			},
+		},
+		{
+			name: "put with ext on create keeps it",
+			run: func(t *testing.T, s Store) {
+				_ = s.Put(ctx, Room{ID: "a", Content: []byte("x"), Ext: "go", ExpiresAt: future})
+				got, err := s.Get(ctx, "a")
+				if err != nil {
+					t.Fatalf("Get: %v", err)
+				}
+				if got.Ext != "go" {
+					t.Errorf("Ext = %q, want %q", got.Ext, "go")
+				}
+			},
+		},
+		{
+			name: "set ext then get",
+			run: func(t *testing.T, s Store) {
+				_ = s.Put(ctx, Room{ID: "a", Content: []byte("x"), ExpiresAt: future})
+				if err := s.SetExt(ctx, "a", "go"); err != nil {
+					t.Fatalf("SetExt: %v", err)
+				}
+				got, err := s.Get(ctx, "a")
+				if err != nil {
+					t.Fatalf("Get: %v", err)
+				}
+				if got.Ext != "go" {
+					t.Errorf("Ext = %q, want %q", got.Ext, "go")
+				}
+			},
+		},
+		{
+			name: "put on existing room keeps ext",
+			run: func(t *testing.T, s Store) {
+				// An edit is a Put with no Ext. It must replace the content
+				// without resetting the file type.
+				_ = s.Put(ctx, Room{ID: "a", Content: []byte("v1"), ExpiresAt: future})
+				_ = s.SetExt(ctx, "a", "go")
+				if err := s.Put(ctx, Room{ID: "a", Content: []byte("v2"), ExpiresAt: future}); err != nil {
+					t.Fatalf("Put v2: %v", err)
+				}
+				got, err := s.Get(ctx, "a")
+				if err != nil {
+					t.Fatalf("Get: %v", err)
+				}
+				if string(got.Content) != "v2" {
+					t.Errorf("Content = %q, want v2", got.Content)
+				}
+				if got.Ext != "go" {
+					t.Errorf("Ext = %q, want %q", got.Ext, "go")
+				}
+			},
+		},
+		{
+			name: "set ext unknown id",
+			run: func(t *testing.T, s Store) {
+				if err := s.SetExt(ctx, "nope", "go"); !errors.Is(err, ErrNotFound) {
+					t.Errorf("SetExt unknown: err = %v, want ErrNotFound", err)
+				}
+			},
+		},
+		{
+			name: "set ext on expired room",
+			run: func(t *testing.T, s Store) {
+				_ = s.Put(ctx, Room{ID: "old", Content: []byte("x"), ExpiresAt: past})
+				if err := s.SetExt(ctx, "old", "go"); !errors.Is(err, ErrNotFound) {
+					t.Errorf("SetExt expired: err = %v, want ErrNotFound", err)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
