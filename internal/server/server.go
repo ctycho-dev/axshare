@@ -18,21 +18,47 @@ import (
 //go:embed all:dist
 var staticFS embed.FS
 
-type Server struct {
-	mux    *http.ServeMux
-	store  store.Store
-	hub    *hub.Hub
-	static fs.FS
+type Config struct {
+	BaseURL            string // public address, e.g. https://axshare.dev
+	GitHubClientID     string
+	GitHubClientSecret string
+	GoogleClientID     string
+	GoogleClientSecret string
 }
 
-func New(addr string, st store.Store, h *hub.Hub) *http.Server {
-	s := &Server{mux: http.NewServeMux(), store: st, hub: h}
+// GitHubEnabled reports whether GitHub sign-in has everything it needs.
+func (c Config) GitHubEnabled() bool {
+	return c.BaseURL != "" && c.GitHubClientID != "" && c.GitHubClientSecret != ""
+}
+
+// GoogleEnabled reports whether Google sign-in has everything it needs.
+func (c Config) GoogleEnabled() bool {
+	return c.BaseURL != "" && c.GoogleClientID != "" && c.GoogleClientSecret != ""
+}
+
+type Server struct {
+	mux       *http.ServeMux
+	store     store.Store
+	hub       *hub.Hub
+	static    fs.FS
+	cfg       Config
+	providers []*provider
+}
+
+func New(addr string, st store.Store, h *hub.Hub, cfg Config) *http.Server {
+	s := &Server{
+		mux:       http.NewServeMux(),
+		store:     st,
+		hub:       h,
+		cfg:       cfg,
+		providers: newProviders(cfg),
+	}
 	s.routes()
 	rl := newRateLimiter(5, 20)
 
 	return &http.Server{
 		Addr:    addr,
-		Handler: logRequests(rl.middleware(s.mux)),
+		Handler: logRequests(rl.middleware(s.withUser(s.mux))),
 		// Without this a client that opens a connection and never sends
 		// headers holds a goroutine forever.
 		ReadHeaderTimeout: 5 * time.Second,
@@ -59,7 +85,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/rooms", s.handleCreateRoom)
 	s.mux.HandleFunc("PATCH /api/rooms/{id}", s.handleSetExt)
 	s.mux.HandleFunc("GET /api/rooms/{id}", s.handleGetRoom)
+	s.mux.HandleFunc("GET /api/me", s.handleMe)
 	s.mux.HandleFunc("GET /ws/{id}", s.handleWS)
+
+	s.mux.HandleFunc("GET /auth/{provider}/login", s.handleLogin)
+	s.mux.HandleFunc("GET /auth/{provider}/callback", s.handleCallback)
+	s.mux.HandleFunc("POST /auth/logout", s.handleLogout)
 }
 
 func (s *Server) handleRoomPage(w http.ResponseWriter, r *http.Request) {

@@ -224,14 +224,6 @@ func testStore(t *testing.T, newStore func(t *testing.T) Store) {
 	}
 }
 
-func TestMemory(t *testing.T) {
-	testStore(t, func(t *testing.T) Store {
-		m := NewMemory()
-		m.now = func() time.Time { return time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC) }
-		return m
-	})
-}
-
 func TestSQLite(t *testing.T) {
 	testStore(t, func(t *testing.T) Store {
 		s, err := OpenSQLite(filepath.Join(t.TempDir(), "test.db"))

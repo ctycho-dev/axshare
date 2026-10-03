@@ -1,6 +1,8 @@
 BIN     := axshare
 ADDR    ?= :8070
 DB      ?= axshare.db
+-include .env
+export
 
 .PHONY: run race build test vet fmt check health clean web dev docker up down
 

@@ -1,10 +1,13 @@
 import './style.css'
+import { mountAccount } from './account'
 import { clearRecent, fmtAgo, fmtBytes, loadRecent, type Recent } from './recent'
 
 const createBtn = document.getElementById('create') as HTMLButtonElement
 const recentBox = document.getElementById('recent') as HTMLElement
 const rows = document.getElementById('recent-rows') as HTMLElement
 const info = document.getElementById('server-info') as HTMLElement
+
+mountAccount(document.getElementById('account') as HTMLElement)
 
 async function create(): Promise<void> {
   createBtn.disabled = true
@@ -43,6 +46,7 @@ document.getElementById('clear')!.addEventListener('click', () => {
   renderRecent()
 })
 document.addEventListener('keydown', (e) => {
+  if (document.querySelector('dialog[open]')) return
   if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) create()
 })
 

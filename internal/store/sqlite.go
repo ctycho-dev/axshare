@@ -24,7 +24,7 @@ func OpenSQLite(path string) (*SQLite, error) {
 	// WAL lets readers proceed while a write is in progress; busy_timeout
 	// makes a second writer wait instead of failing immediately with
 	// "database is locked".
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", path)
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", path)
 
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -123,6 +123,8 @@ func (s *SQLite) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// Expire deletes expired rooms and sessions. It returns the number of rooms
+// removed.
 func (s *SQLite) Expire(ctx context.Context, now time.Time) (int, error) {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM rooms WHERE expires_at < ?`, now.Unix())
 	if err != nil {
@@ -131,6 +133,9 @@ func (s *SQLite) Expire(ctx context.Context, now time.Time) (int, error) {
 	n, err := res.RowsAffected()
 	if err != nil {
 		return 0, fmt.Errorf("expire: rows affected: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE expires_at < ?`, now.Unix()); err != nil {
+		return int(n), fmt.Errorf("expire sessions: %w", err)
 	}
 	return int(n), nil
 }

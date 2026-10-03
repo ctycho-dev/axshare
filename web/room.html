@@ -11,13 +11,14 @@
   <link rel="icon" href="/favicon.svg">
 </head>
 <body class="editor-page">
-  <header class="bar">
+    <header class="bar">
     <a class="wordmark" href="/">axshare</a>
     <span class="room-id" id="room-id"></span>
-    <select class="lang" id="lang" title="syntax highlighting"></select>
+    <select class="lang" id="lang" title="syntax highlighting" style="visibility: hidden"></select>
     <span class="spacer"></span>
     <span class="status" id="status" data-state="connecting">connecting</span>
     <button class="copy" id="copy">copy link</button>
+    <span class="account" id="account"></span>
   </header>
 
   <div id="editor"></div>

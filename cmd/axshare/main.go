@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,13 +31,23 @@ func main() {
 		return
 	}
 
-	if err := run(*addr, *dbPath); err != nil {
+	// Secrets come from the environment, not flags: flags are visible to
+	// anyone who can list processes on the machine.
+	cfg := server.Config{
+		BaseURL:            strings.TrimRight(os.Getenv("BASE_URL"), "/"),
+		GitHubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+	}
+
+	if err := run(*addr, *dbPath, cfg); err != nil {
 		log.Println("axshare:", err)
 		os.Exit(1)
 	}
 }
 
-func run(addr, dbPath string) error {
+func run(addr, dbPath string, cfg server.Config) error {
 	// ctx is cancelled on Ctrl+C or SIGTERM (what Docker/systemd send).
 	// Everything long-running below takes it, so one signal unwinds all.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -49,7 +60,8 @@ func run(addr, dbPath string) error {
 	defer st.Close()
 
 	h := hub.New(st)
-	srv := server.New(addr, st, h)
+	srv := server.New(addr, st, h, cfg)
+	log.Printf("sign-in: github=%v google=%v", cfg.GitHubEnabled(), cfg.GoogleEnabled())
 
 	// Expiry runs in the background until ctx is cancelled.
 	go store.RunExpiry(ctx, st, time.Minute)

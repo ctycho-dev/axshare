@@ -3,6 +3,8 @@ services:
     build: .
     restart: unless-stopped
     user: "65532:65532"
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:8070:8070"
     volumes:

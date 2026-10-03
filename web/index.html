@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,10 +11,12 @@
   <link rel="stylesheet" href="/src/style.css">
   <link rel="icon" href="/favicon.svg">
 </head>
+
 <body>
   <main class="landing">
     <span class="wordmark">axshare</span>
-    <p class="tagline">Live text sync. Create a file, share the link, edit it from anywhere. Self-hosted, no accounts, gone in 24 hours.</p>
+    <p class="tagline">Live text sync. Create a file, share the link, edit it from anywhere. Self-hosted, no accounts,
+      gone in 24 hours.</p>
 
     <button class="create" id="create">create file <kbd>⏎</kbd></button>
     <p class="hint">or press n</p>
@@ -30,10 +33,13 @@
   <footer class="site-footer">
     <span id="server-info">axshare</span>
     <nav>
+      <a href="/privacy.html">privacy</a>
       <a href="https://github.com/ctycho-dev/axshare" target="_blank" rel="noopener">source</a>
     </nav>
   </footer>
 
   <script type="module" src="/src/index.ts"></script>
 </body>
+<div class="account corner" id="account"></div>
+
 </html>

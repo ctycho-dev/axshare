@@ -1,4 +1,5 @@
 import './style.css'
+import { mountAccount } from './account'
 import { createEditor, guessLanguage, LANGUAGES } from './editor'
 import { fmtBytes, fmtIn, markExpired, touchRecent } from './recent'
 
@@ -91,7 +92,10 @@ function connect() {
     if (first) {
       first = false
       editor.view.focus()
+      // Nobody has picked a file type yet: guess one for this viewer only.
       if (!langChosen) applyLanguage(guessLanguage(e.data))
+      // The language is final now, so the selector can appear.
+      langSel.style.visibility = 'visible'
     }
     bump(e.data)
   }
@@ -160,3 +164,5 @@ fetch(`/api/rooms/${id}`).then((r) => {
 
   connect()
 })
+
+mountAccount(document.getElementById('account') as HTMLElement)

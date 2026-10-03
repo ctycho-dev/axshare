@@ -276,3 +276,63 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .bar .room-id { display: none; }
   .foot .bytes { display: none; }
 }
+
+/* --- account (sign-in state) --- */
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.account:empty {
+  display: none;
+}
+.account img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.account a {
+  color: inherit;
+}
+.account.corner {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+/* --- login dialog --- */
+.login-dialog {
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: var(--bg, Canvas);
+  color: var(--fg, CanvasText);
+  font: inherit;
+}
+.login-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+.login-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 16rem;
+  padding: 1.5rem;
+}
+.login-box h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+.login-box .provider {
+  display: block;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+.login-box .provider:hover {
+  opacity: 0.8;
+}

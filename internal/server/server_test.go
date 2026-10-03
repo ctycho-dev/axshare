@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,13 +12,14 @@ import (
 	"github.com/ctycho-dev/axshare/internal/store"
 )
 
-// newTestServer builds the real router on the in-memory store. No port is
-// opened: httptest.NewRecorder captures what a handler writes, so tests are
-// fast and need no network.
 func newTestServer(t *testing.T) http.Handler {
 	t.Helper()
-	st := store.NewMemory()
-	return New(":0", st, hub.New(st)).Handler
+	st, err := store.OpenSQLite(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	return New(":0", st, hub.New(st), Config{}).Handler
 }
 
 func TestHealth(t *testing.T) {
