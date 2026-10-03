@@ -1,10 +1,10 @@
 import './style.css'
 import { mountAccount } from './account'
 import { createEditor, guessLanguage, LANGUAGES } from './editor'
-import { fmtBytes, fmtIn, markExpired, touchRecent } from './recent'
+import { dropRecent, fmtBytes, fmtIn, touchRecent } from './recent'
+import { mountTheme } from './theme'
 
 const id = location.pathname.split('/').filter(Boolean)[1] ?? ''
-const TTL_MS = 24 * 60 * 60 * 1000
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T
 const statusEl = $<HTMLElement>('#status')
@@ -19,9 +19,12 @@ $<HTMLElement>('#room-id').textContent = id.slice(0, 8)
 document.title = `Axshare Room | ${id.slice(0, 8)}`
 
 let ws: WebSocket | null = null
-let expiresAt = Date.now() + TTL_MS
-let lastSentAt = 0
+// How far an edit pushes the expiry. 24h until the server says otherwise
+// (7 days for a file that has an owner).
+let ttlMs = 24 * 60 * 60 * 1000
+let expiresAt = Date.now() + ttlMs
 let retry = 0
+let sendTimer = 0
 
 type Conn = 'connecting' | 'live' | 'reconnecting' | 'offline'
 function setStatus(state: Conn, text: string = state) {
@@ -34,13 +37,13 @@ const editor = createEditor(editorEl, (text) => {
   clearTimeout(sendTimer)
   sendTimer = window.setTimeout(() => send(text), 150)
 })
-let sendTimer = 0
 
 // --- language ---
 // The room's file type lives on the server. Picking one in the header saves
 // it for every viewer; they see it on their next load.
 for (const l of LANGUAGES) langSel.add(new Option(l.label, l.id))
 let langChosen = false
+let roomExt = 'plain' // what the server has stored; shown in the recent list
 
 function applyLanguage(lang: string) {
   // A file type this build doesn't know shows as plain.
@@ -54,11 +57,15 @@ langSel.addEventListener('change', async () => {
   langChosen = true
   applyLanguage(lang)
   try {
-    await fetch(`/api/rooms/${id}`, {
+    const r = await fetch(`/api/rooms/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ext: lang }),
     })
+    if (r.ok) {
+      roomExt = lang
+      bump(editor.getText())
+    }
   } catch {
     /* offline: the choice still applies on this page */
   }
@@ -67,15 +74,14 @@ langSel.addEventListener('change', async () => {
 function send(text: string) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return
   ws.send(text)
-  lastSentAt = Date.now()
-  expiresAt = lastSentAt + TTL_MS // server extends TTL on every persist
+  expiresAt = Date.now() + ttlMs // the server extends the expiry on every edit
   bump(text)
 }
 
 function bump(text: string) {
   const bytes = new TextEncoder().encode(text).length
   bytesEl.textContent = fmtBytes(bytes)
-  touchRecent({ id, bytes, seen: Date.now(), expires: expiresAt })
+  touchRecent({ id, bytes, seen: Date.now(), expires: expiresAt, ext: roomExt })
 }
 
 function connect() {
@@ -96,14 +102,17 @@ function connect() {
       if (!langChosen) applyLanguage(guessLanguage(e.data))
       // The language is final now, so the selector can appear.
       langSel.style.visibility = 'visible'
+    } else {
+      // Someone else edited, which extended the expiry on the server.
+      expiresAt = Date.now() + ttlMs
     }
     bump(e.data)
   }
   ws.onclose = (e) => {
     ws = null
-    // 1008 is what the server sends for an unknown/expired room (policy
-    // violation) via the HTTP 404 before upgrade; the browser surfaces it
-    // as a close with no open. Distinguish that from a network drop.
+    // A close before the first frame means the room is unknown or expired
+    // (the server answered 404 before the upgrade). Distinguish that from
+    // a network drop.
     if (first) {
       showGone()
       return
@@ -125,7 +134,7 @@ function showGone() {
   editorEl.hidden = true
   goneEl.hidden = false
   setStatus('offline', 'not found')
-  markExpired(id)
+  dropRecent(id)
 }
 
 copyBtn.addEventListener('click', async () => {
@@ -143,7 +152,7 @@ setInterval(() => {
 }, 1000)
 
 // The room must exist before we open a socket. The same response carries
-// the room's file type and real expiry in headers.
+// the room's file type, real expiry and lifetime in headers.
 fetch(`/api/rooms/${id}`).then((r) => {
   if (r.status === 404) {
     showGone()
@@ -154,11 +163,13 @@ fetch(`/api/rooms/${id}`).then((r) => {
     return
   }
 
-  const ext = r.headers.get('X-Room-Ext') ?? 'plain'
-  if (ext !== 'plain') {
+  roomExt = r.headers.get('X-Room-Ext') ?? 'plain'
+  if (roomExt !== 'plain') {
     langChosen = true
-    applyLanguage(ext)
+    applyLanguage(roomExt)
   }
+  const ttl = Number(r.headers.get('X-Room-TTL'))
+  if (ttl > 0) ttlMs = ttl * 1000
   const expires = Number(r.headers.get('X-Room-Expires'))
   if (expires > 0) expiresAt = expires * 1000
 
@@ -166,3 +177,4 @@ fetch(`/api/rooms/${id}`).then((r) => {
 })
 
 mountAccount(document.getElementById('account') as HTMLElement)
+mountTheme(document.getElementById('theme') as HTMLElement)

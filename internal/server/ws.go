@@ -36,5 +36,5 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.hub.Join(r.Context(), id, conn, p.Content)
+	s.hub.Join(r.Context(), id, conn, p.Content, store.TTL(p.OwnerID))
 }

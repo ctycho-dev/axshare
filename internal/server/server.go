@@ -86,6 +86,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PATCH /api/rooms/{id}", s.handleSetExt)
 	s.mux.HandleFunc("GET /api/rooms/{id}", s.handleGetRoom)
 	s.mux.HandleFunc("GET /api/me", s.handleMe)
+	s.mux.HandleFunc("GET /api/me/rooms", s.handleMyRooms)
 	s.mux.HandleFunc("GET /ws/{id}", s.handleWS)
 
 	s.mux.HandleFunc("GET /auth/{provider}/login", s.handleLogin)

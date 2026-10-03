@@ -8,18 +8,37 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    try {
+      const t = localStorage.getItem('axshare.theme')
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+    } catch { }
+  </script>
   <link rel="stylesheet" href="/src/style.css">
   <link rel="icon" href="/favicon.svg">
 </head>
 
 <body>
+  <div class="corner">
+    <span id="theme"></span>
+    <span class="account" id="account"></span>
+  </div>
+
   <main class="landing">
     <span class="wordmark">axshare</span>
-    <p class="tagline">Live text sync. Create a file, share the link, edit it from anywhere. Self-hosted, no accounts,
-      gone in 24 hours.</p>
+    <p class="tagline">Live text sync. Create a file, share the link, edit it from anywhere. No account needed: files
+      last 24 hours, or 7 days when you sign in.</p>
 
     <button class="create" id="create">create file <kbd>⏎</kbd></button>
     <p class="hint">or press n</p>
+
+    <section class="recent" id="mine" hidden>
+      <header>
+        <span>my files</span>
+        <button id="mine-toggle" hidden></button>
+      </header>
+      <div id="mine-rows"></div>
+    </section>
 
     <section class="recent" id="recent" hidden>
       <header>
@@ -40,6 +59,9 @@
 
   <script type="module" src="/src/index.ts"></script>
 </body>
-<div class="account corner" id="account"></div>
+<div class="corner">
+  <span id="theme"></span>
+  <span class="account" id="account"></span>
+</div>
 
 </html>

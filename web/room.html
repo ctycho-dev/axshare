@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,9 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    try {
+      const t = localStorage.getItem('axshare.theme')
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+    } catch { }
+  </script>
   <link rel="stylesheet" href="/src/style.css">
   <link rel="icon" href="/favicon.svg">
 </head>
+
 <body class="editor-page">
     <header class="bar">
     <a class="wordmark" href="/">axshare</a>
@@ -18,6 +26,7 @@
     <span class="spacer"></span>
     <span class="status" id="status" data-state="connecting">connecting</span>
     <button class="copy" id="copy">copy link</button>
+    <span id="theme"></span>
     <span class="account" id="account"></span>
   </header>
 
@@ -28,7 +37,7 @@
     <a href="/"><button>create a new one</button></a>
   </section>
 
-  <footer class="foot">
+    <footer class="foot">
     <span id="expires"></span>
     <span class="spacer"></span>
     <span class="bytes" id="bytes">0 B</span>
@@ -36,4 +45,5 @@
 
   <script type="module" src="/src/room.ts"></script>
 </body>
+
 </html>

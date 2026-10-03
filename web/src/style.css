@@ -3,53 +3,32 @@
 
 :root {
   color-scheme: light dark;
-  --bg: #f5f5f4;
-  --fg: #111;
-  --muted: #6b6b6b;
-  --faint: #a3a3a3;
-  --border: #d9d9d6;
-  --panel: #fbfbfa;
-  --accent: #3f8f4f;
-  --accent-fg: #f5f5f4;
-  --danger: #b4423b;
-  --warn: #b8862b;
+  --bg: light-dark(#f5f5f4, #0c0c0c);
+  --fg: light-dark(#111, #ececec);
+  --muted: light-dark(#6b6b6b, #8a8a8a);
+  --faint: light-dark(#a3a3a3, #555);
+  --border: light-dark(#d9d9d6, #262626);
+  --panel: light-dark(#fbfbfa, #111);
+  --accent: light-dark(#3f8f4f, #7ed48e);
+  --accent-fg: light-dark(#f5f5f4, #0c0c0c);
+  --danger: light-dark(#b4423b, #e06c66);
+  --warn: light-dark(#b8862b, #d9a441);
   --font: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* syntax, light */
-  --syn-keyword: #2f7a3e;
-  --syn-string: #a3542b;
-  --syn-comment: #8a8a8a;
-  --syn-number: #7a4bb5;
-  --syn-type: #1f6f8b;
-  --syn-function: #1a5fb4;
-  --syn-property: #7a5a1e;
-  --syn-punct: #5c5c5c;
+  /* syntax */
+  --syn-keyword: light-dark(#2f7a3e, #7ed48e);
+  --syn-string: light-dark(#a3542b, #e6a06f);
+  --syn-comment: light-dark(#8a8a8a, #6f6f6f);
+  --syn-number: light-dark(#7a4bb5, #c9a4ff);
+  --syn-type: light-dark(#1f6f8b, #7cc7e0);
+  --syn-function: light-dark(#1a5fb4, #8ab8ff);
+  --syn-property: light-dark(#7a5a1e, #d9c27a);
+  --syn-punct: light-dark(#5c5c5c, #a0a0a0);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c0c0c;
-    --fg: #ececec;
-    --muted: #8a8a8a;
-    --faint: #555;
-    --border: #262626;
-    --panel: #111;
-    --accent: #7ed48e;
-    --accent-fg: #0c0c0c;
-    --danger: #e06c66;
-    --warn: #d9a441;
-
-    /* syntax, dark */
-    --syn-keyword: #7ed48e;
-    --syn-string: #e6a06f;
-    --syn-comment: #6f6f6f;
-    --syn-number: #c9a4ff;
-    --syn-type: #7cc7e0;
-    --syn-function: #8ab8ff;
-    --syn-property: #d9c27a;
-    --syn-punct: #a0a0a0;
-  }
-}
+/* A chosen theme overrides the OS setting; no attribute means auto. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -172,6 +151,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .recent a.row:last-child { border-bottom: 0; }
 .recent a.row:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
 .recent a.row .id { font-weight: 700; }
+.recent a.row .ext { color: var(--muted); font-size: 12px; margin-left: 10px; }
 .recent a.row .meta { color: var(--muted); text-align: right; min-width: 6ch; }
 .recent a.row.expired .id { text-decoration: line-through; color: var(--faint); font-weight: 400; }
 
@@ -277,62 +257,98 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .foot .bytes { display: none; }
 }
 
-/* --- account (sign-in state) --- */
+/* ---------- account (sign-in state) ---------- */
+
 .account {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
 }
-.account:empty {
-  display: none;
-}
+.account:empty { display: none; }
 .account img {
   width: 20px;
   height: 20px;
   border-radius: 50%;
+  border: 1px solid var(--border);
 }
-.account a {
-  color: inherit;
-}
-.account.corner {
+.corner {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 12px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* --- login dialog --- */
+/* ---------- login dialog ---------- */
+
 .login-dialog {
+  width: min(360px, calc(100vw - 32px));
   padding: 0;
-  border: 1px solid currentColor;
-  border-radius: 8px;
-  background: var(--bg, Canvas);
-  color: var(--fg, CanvasText);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--fg);
   font: inherit;
 }
-.login-dialog::backdrop {
-  background: rgb(0 0 0 / 0.5);
+.login-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+.login-box { display: flex; flex-direction: column; }
+.login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
 }
-.login-box {
+.login-close { font-size: 11px; padding: 1px 6px; color: var(--muted); }
+.login-close:hover { color: var(--fg); }
+.login-note {
+  margin: 0;
+  padding: 16px 18px 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.login-providers {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  min-width: 16rem;
-  padding: 1.5rem;
+  gap: 8px;
+  padding: 12px 18px 18px;
 }
-.login-box h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1rem;
-}
-.login-box .provider {
-  display: block;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  color: inherit;
-  text-align: center;
+.login-providers .provider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
   text-decoration: none;
 }
-.login-box .provider:hover {
-  opacity: 0.8;
+.login-providers .provider:hover {
+  border-color: var(--muted);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  text-decoration: none;
+}
+.login-providers .provider:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.login-providers .icon { display: inline-flex; }
+.login-providers .icon svg { width: 18px; height: 18px; }
+.login-providers .arrow { margin-left: auto; color: var(--faint); }
+.login-providers .provider:hover .arrow { color: var(--accent); }
+.login-foot {
+  padding: 10px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- theme toggle ---------- */
+
+.theme-toggle { font-size: 12px; color: var(--muted); }
+.theme-toggle:hover { color: var(--fg); }
+
+@media (max-width: 640px) {
+  .account > span { display: none; }
 }

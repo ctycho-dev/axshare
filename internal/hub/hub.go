@@ -27,6 +27,7 @@ type message struct {
 // room is one paste's live session.
 type room struct {
 	id         string
+	ttl        time.Duration // how far each edit pushes the expiry
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
@@ -66,8 +67,10 @@ func (h *Hub) Close() {
 	}
 }
 
-// room returns the room for id, starting its goroutine on first use.
-func (h *Hub) room(id string) *room {
+// room returns the room for id, starting its goroutine on first use. ttl is
+// only used when the room is created here; a room's owner never changes,
+// so every caller passes the same value.
+func (h *Hub) room(id string, ttl time.Duration) *room {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -76,6 +79,7 @@ func (h *Hub) room(id string) *room {
 	}
 	r := &room{
 		id:         id,
+		ttl:        ttl,
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -99,9 +103,9 @@ func (h *Hub) forget(id string) {
 // Join attaches conn to the room for id and blocks until the connection
 // closes. The caller's goroutine becomes the read side; the write side is
 // spawned here. initial is the paste's current content, sent to the new
-// client before anything else.
-func (h *Hub) Join(ctx context.Context, id string, conn *websocket.Conn, initial []byte) {
-	r := h.room(id)
+// client before anything else. ttl is the room's lifetime after an edit.
+func (h *Hub) Join(ctx context.Context, id string, conn *websocket.Conn, initial []byte, ttl time.Duration) {
+	r := h.room(id, ttl)
 	c := &Client{
 		conn: conn,
 		send: make(chan []byte, 8),
@@ -129,15 +133,18 @@ func (h *Hub) Join(ctx context.Context, id string, conn *websocket.Conn, initial
 }
 
 // persist writes the latest content back to the store so a room survives
-// a restart. Uses a fresh context: the client that sent the edit may be gone.
+// a restart, and pushes the expiry out by the room's lifetime. Uses a fresh
+// context: the client that sent the edit may be gone.
 func (r *room) persist(data []byte) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	now := time.Now()
 	_ = r.store.Put(ctx, store.Room{
 		ID:        r.id,
 		Content:   data,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		CreatedAt: now,
+		ExpiresAt: now.Add(r.ttl),
 	})
 }
 

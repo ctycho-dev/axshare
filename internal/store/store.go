@@ -11,11 +11,35 @@ var ErrNotFound = errors.New("store: not found")
 // DefaultExt is the file type of a room that never had one set.
 const DefaultExt = "plain"
 
+// How long a room lives after its last edit.
+const (
+	AnonTTL  = 24 * time.Hour
+	OwnedTTL = 7 * 24 * time.Hour
+)
+
+// TTL returns the lifetime for a room with the given owner. An ownerID of
+// 0 means the room is anonymous.
+func TTL(ownerID int64) time.Duration {
+	if ownerID == 0 {
+		return AnonTTL
+	}
+	return OwnedTTL
+}
+
 type Room struct {
 	ID        string
 	Content   []byte
 	Ext       string
+	OwnerID   int64 // 0 means anonymous
 	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+// RoomInfo is a room without its content, for listings.
+type RoomInfo struct {
+	ID        string
+	Ext       string
+	Bytes     int
 	ExpiresAt time.Time
 }
 
@@ -29,8 +53,8 @@ type User struct {
 
 type Store interface {
 	// Put creates the room or, if the id exists, replaces its content and
-	// timestamps. Ext is used on create only (empty means DefaultExt); an
-	// existing room keeps the Ext it has. Use SetExt to change it.
+	// expiry. Ext, OwnerID and CreatedAt are used on create only; an
+	// existing room keeps the ones it has.
 	Put(ctx context.Context, p Room) error
 
 	Get(ctx context.Context, id string) (Room, error)
@@ -42,6 +66,9 @@ type Store interface {
 	Delete(ctx context.Context, id string) error
 
 	Expire(ctx context.Context, now time.Time) (int, error)
+
+	// RoomsByOwner lists a user's live rooms, most recently edited first.
+	RoomsByOwner(ctx context.Context, ownerID int64) ([]RoomInfo, error)
 
 	// UpsertUser finds the user behind a provider login, creating the user
 	// on first sign-in and refreshing name, email and avatar on later ones.

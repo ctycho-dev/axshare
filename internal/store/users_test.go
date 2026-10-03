@@ -123,3 +123,66 @@ func TestSessions(t *testing.T) {
 		t.Errorf("second DeleteSession: %v", err)
 	}
 }
+
+func TestRoomOwnership(t *testing.T) {
+	ctx := context.Background()
+	s := newTestSQLite(t)
+
+	u, err := s.UpsertUser(ctx, "github", "42", User{Name: "Ada"})
+	if err != nil {
+		t.Fatalf("UpsertUser: %v", err)
+	}
+	other, err := s.UpsertUser(ctx, "github", "43", User{Name: "Bob"})
+	if err != nil {
+		t.Fatalf("UpsertUser other: %v", err)
+	}
+
+	soon := testNow.Add(time.Hour)
+	later := testNow.Add(2 * time.Hour)
+	past := testNow.Add(-time.Hour)
+
+	rooms := []Room{
+		{ID: "mine-old", Content: []byte("abc"), OwnerID: u.ID, ExpiresAt: soon},
+		{ID: "mine-new", Content: []byte("hello"), Ext: "go", OwnerID: u.ID, ExpiresAt: later},
+		{ID: "mine-expired", Content: []byte("x"), OwnerID: u.ID, ExpiresAt: past},
+		{ID: "theirs", Content: []byte("x"), OwnerID: other.ID, ExpiresAt: soon},
+		{ID: "anon", Content: []byte("x"), ExpiresAt: soon},
+	}
+	for _, r := range rooms {
+		if err := s.Put(ctx, r); err != nil {
+			t.Fatalf("Put %s: %v", r.ID, err)
+		}
+	}
+
+	// An edit is a Put with no owner. It must not strip ownership.
+	if err := s.Put(ctx, Room{ID: "mine-old", Content: []byte("abcd"), ExpiresAt: soon}); err != nil {
+		t.Fatalf("Put edit: %v", err)
+	}
+	got, err := s.Get(ctx, "mine-old")
+	if err != nil {
+		t.Fatalf("Get mine-old: %v", err)
+	}
+	if got.OwnerID != u.ID {
+		t.Errorf("owner after edit = %d, want %d", got.OwnerID, u.ID)
+	}
+
+	anon, err := s.Get(ctx, "anon")
+	if err != nil {
+		t.Fatalf("Get anon: %v", err)
+	}
+	if anon.OwnerID != 0 {
+		t.Errorf("anonymous room owner = %d, want 0", anon.OwnerID)
+	}
+
+	// The listing has only this user's live rooms, most recently edited first.
+	list, err := s.RoomsByOwner(ctx, u.ID)
+	if err != nil {
+		t.Fatalf("RoomsByOwner: %v", err)
+	}
+	if len(list) != 2 || list[0].ID != "mine-new" || list[1].ID != "mine-old" {
+		t.Fatalf("RoomsByOwner = %+v, want mine-new then mine-old", list)
+	}
+	if list[0].Ext != "go" || list[0].Bytes != 5 {
+		t.Errorf("mine-new info = %+v, want ext go and 5 bytes", list[0])
+	}
+}
