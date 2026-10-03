@@ -3,6 +3,8 @@ package server
 import (
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,16 +65,48 @@ func (rl *rateLimiter) sweep(every, idle time.Duration) {
 	}
 }
 
-// middleware answers 429 when the client's bucket is empty. WebSocket
-// upgrades pass through: they are one request that then lives for hours,
-// and the read limit on the socket does the throttling there.
+// clientIP returns the address to rate-limit on.
+//
+// A client that connects directly is identified by its TCP peer address.
+// When the peer is a local reverse proxy (loopback, or a private address
+// such as Docker's bridge gateway), the real client is the LAST entry of
+// X-Forwarded-For: that is the one the proxy appended itself. Earlier
+// entries are whatever the client sent and cannot be trusted.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+
+	peer, err := netip.ParseAddr(host)
+	if err != nil {
+		return host
+	}
+	peer = peer.Unmap()
+	if !peer.IsLoopback() && !peer.IsPrivate() {
+		// Not behind our proxy: ignore the header, it could be forged.
+		return host
+	}
+
+	vals := r.Header.Values("X-Forwarded-For")
+	if len(vals) == 0 {
+		return host
+	}
+	last := vals[len(vals)-1]
+	if i := strings.LastIndexByte(last, ','); i >= 0 {
+		last = last[i+1:]
+	}
+	last = strings.TrimSpace(last)
+	if _, err := netip.ParseAddr(last); err != nil {
+		return host
+	}
+	return last
+}
+
+// middleware answers 429 when the client's bucket is empty.
 func (rl *rateLimiter) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			ip = r.RemoteAddr
-		}
-		if !rl.limiter(ip).Allow() {
+		if !rl.limiter(clientIP(r)).Allow() {
 			http.Error(w, "too many requests", http.StatusTooManyRequests)
 			return
 		}
