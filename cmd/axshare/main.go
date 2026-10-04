@@ -23,6 +23,7 @@ const version = "0.1.0"
 func main() {
 	addr := flag.String("addr", ":8070", "address to listen on")
 	dbPath := flag.String("db", "axshare.db", "path to the SQLite file")
+	noRateLimit := flag.Bool("no-ratelimit", false, "disable the per-IP rate limit (load testing only)")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
@@ -39,6 +40,7 @@ func main() {
 		GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		DisableRateLimit:   *noRateLimit,
 	}
 
 	if err := run(*addr, *dbPath, cfg); err != nil {
@@ -62,6 +64,9 @@ func run(addr, dbPath string, cfg server.Config) error {
 	h := hub.New(st)
 	srv := server.New(addr, st, h, cfg)
 	log.Printf("sign-in: github=%v google=%v", cfg.GitHubEnabled(), cfg.GoogleEnabled())
+	if cfg.DisableRateLimit {
+		log.Println("WARNING: rate limiting is disabled; do not run production like this")
+	}
 
 	// Expiry runs in the background until ctx is cancelled.
 	go store.RunExpiry(ctx, st, time.Minute)

@@ -18,12 +18,18 @@ import (
 //go:embed all:dist
 var staticFS embed.FS
 
+// Config holds settings that come from the environment and flags. The zero
+// value is valid: no sign-in providers, rate limiting on.
 type Config struct {
 	BaseURL            string // public address, e.g. https://axshare.dev
 	GitHubClientID     string
 	GitHubClientSecret string
 	GoogleClientID     string
 	GoogleClientSecret string
+
+	// DisableRateLimit turns the per-IP limiter off. For load testing only:
+	// a test from one machine would otherwise be refused after 20 requests.
+	DisableRateLimit bool
 }
 
 // GitHubEnabled reports whether GitHub sign-in has everything it needs.
@@ -54,11 +60,18 @@ func New(addr string, st store.Store, h *hub.Hub, cfg Config) *http.Server {
 		providers: newProviders(cfg),
 	}
 	s.routes()
-	rl := newRateLimiter(5, 20)
+
+	// Middleware wraps from the inside out: the last one applied is the
+	// first to see a request.
+	var handler http.Handler = s.withUser(s.mux)
+	if !cfg.DisableRateLimit {
+		handler = newRateLimiter(5, 20).middleware(handler)
+	}
+	handler = logRequests(handler)
 
 	return &http.Server{
 		Addr:    addr,
-		Handler: logRequests(rl.middleware(s.withUser(s.mux))),
+		Handler: handler,
 		// Without this a client that opens a connection and never sends
 		// headers holds a goroutine forever.
 		ReadHeaderTimeout: 5 * time.Second,
