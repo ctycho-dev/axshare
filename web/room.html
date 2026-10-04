@@ -5,6 +5,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Axshare Room</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Axshare">
+  <meta property="og:title" content="Axshare: a shared file">
+  <meta property="og:description" content="Open the link to read and edit this file live.">
+  <meta property="og:image" content="https://axshare.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -19,7 +27,7 @@
 </head>
 
 <body class="editor-page">
-    <header class="bar">
+  <header class="bar">
     <a class="wordmark" href="/">axshare</a>
     <span class="room-id" id="room-id"></span>
     <select class="lang" id="lang" title="syntax highlighting" style="visibility: hidden"></select>
@@ -37,7 +45,7 @@
     <a href="/"><button>create a new one</button></a>
   </section>
 
-    <footer class="foot">
+  <footer class="foot">
     <span id="expires"></span>
     <span class="spacer"></span>
     <span class="bytes" id="bytes">0 B</span>
